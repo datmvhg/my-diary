@@ -1,0 +1,23 @@
+# .NET / Visual Studio
+bin/
+obj/
+*.user
+.vs/
+appsettings.Development.json
+*.db
+*.sqlite
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

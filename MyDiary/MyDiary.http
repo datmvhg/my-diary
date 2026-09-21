@@ -1,0 +1,6 @@
+@MyDiary_HostAddress = http://localhost:5224
+
+GET {{MyDiary_HostAddress}}c
+Accept: application/json
+
+###

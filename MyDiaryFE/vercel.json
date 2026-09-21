@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd mydiary-client && npm install && npm run build",
+  "outputDirectory": "mydiary-client/dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+
