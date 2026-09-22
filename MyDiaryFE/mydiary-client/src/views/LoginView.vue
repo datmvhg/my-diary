@@ -114,9 +114,22 @@
       </div>
     </main>
 
-    <!-- Modal: Requires Email Verification -->
-    <div v-if="showVerifyModal" class="modal-overlay" @click.self="closeVerifyModal">
+    <!-- Modal: Requires Email Verification (clicking backdrop will NOT close modal) -->
+    <div v-if="showVerifyModal" class="modal-overlay">
       <div class="modal-card verify-modal-card" role="dialog" aria-modal="true">
+        <button
+          type="button"
+          class="modal-close-x-btn"
+          :disabled="modalLoading"
+          @click="closeVerifyModal"
+          title="Đóng hộp thoại"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
         <div class="verify-modal-header">
           <div class="header-badge verify-badge">Yêu cầu xác thực</div>
           <h2 class="verify-modal-title">Xác thực Email</h2>
@@ -769,6 +782,7 @@ html.dark .success-banner {
 }
 
 .verify-modal-card {
+  position: relative;
   width: 100%;
   max-width: 460px;
   background: var(--bg-card);
@@ -777,6 +791,31 @@ html.dark .success-banner {
   padding: 2.25rem 2rem;
   box-shadow: var(--shadow-modal);
   animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-close-x-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  z-index: 5;
+}
+
+.modal-close-x-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+  transform: scale(1.08);
 }
 
 .verify-modal-header {
