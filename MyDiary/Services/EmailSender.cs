@@ -87,8 +87,9 @@ namespace Services
                 message.Body = bodyBuilder.ToMessageBody();
 
                 using var client = new SmtpClient();
-                await client.ConnectAsync(host, port, SecureSocketOptions.StartTls);
-                await client.AuthenticateAsync(username, password);
+                var socketOption = (port == 465) ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
+                await client.ConnectAsync(host, port, socketOption);
+                await client.AuthenticateAsync(username.Trim(), password.Trim());
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);
 
@@ -96,6 +97,9 @@ namespace Services
             }
             catch (Exception ex)
             {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"\n[EMAIL SEND FAILED] To: {toEmail} | Error: {ex.GetType().Name}: {ex.Message}\n");
+                Console.ResetColor();
                 _logger.LogError(ex, "Failed to send email via MailKit to {Email}. Reason: {Message}", toEmail, ex.Message);
             }
         }
