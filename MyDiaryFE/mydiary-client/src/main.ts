@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
+import router from './router'
 
 // Initialize theme from localStorage or system preference
 try {
@@ -14,4 +15,4 @@ try {
   // noop in non-browser environments
 }
 
-createApp(App).mount('#app')
+createApp(App).use(router).mount('#app')

@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DBConnect;
@@ -11,6 +13,7 @@ namespace Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class DiaryMomentsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
@@ -20,12 +23,17 @@ namespace Controllers
             _db = db;
         }
 
+        private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
         // GET: api/DiaryMoments
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
+            var userId = CurrentUserId;
+
             var list = await _db.DiaryMoments
                 .AsNoTracking()
+                .Where(d => d.UserId == userId || d.UserId == null)
                 .Select(d => new DiaryMomentDto
                 {
                     Id = d.Id,
@@ -45,7 +53,8 @@ namespace Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var d = await _db.DiaryMoments.FindAsync(id);
+            var userId = CurrentUserId;
+            var d = await _db.DiaryMoments.FirstOrDefaultAsync(x => x.Id == id && (x.UserId == userId || x.UserId == null));
             if (d == null) return NotFound();
 
             var dto = new DiaryMomentDto
@@ -63,7 +72,9 @@ namespace Controllers
         }
 
         // GET: api/DiaryMoments/{id}/image
+        // Allow anonymous so <img> tags in HTML can load images directly
         [HttpGet("{id:int}/image")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetImage(int id)
         {
             var d = await _db.DiaryMoments
@@ -84,8 +95,11 @@ namespace Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Create([FromForm] DiaryMomentCreateDto dto)
         {
+            var userId = CurrentUserId;
+
             var moment = new DiaryMoment
             {
+                UserId = userId,
                 Title = dto.Title,
                 Description = dto.Description,
                 Emotion = dto.Emotion,
@@ -121,8 +135,14 @@ namespace Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Update(int id, [FromForm] DiaryMomentUpdateDto dto)
         {
-            var moment = await _db.DiaryMoments.FindAsync(id);
+            var userId = CurrentUserId;
+            var moment = await _db.DiaryMoments.FirstOrDefaultAsync(x => x.Id == id && (x.UserId == userId || x.UserId == null));
             if (moment == null) return NotFound();
+
+            if (moment.UserId == null && userId != null)
+            {
+                moment.UserId = userId;
+            }
 
             if (dto.Title != null) moment.Title = dto.Title;
             if (dto.Description != null) moment.Description = dto.Description;
@@ -149,7 +169,8 @@ namespace Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var moment = await _db.DiaryMoments.FindAsync(id);
+            var userId = CurrentUserId;
+            var moment = await _db.DiaryMoments.FirstOrDefaultAsync(x => x.Id == id && (x.UserId == userId || x.UserId == null));
             if (moment == null) return NotFound();
 
             _db.DiaryMoments.Remove(moment);

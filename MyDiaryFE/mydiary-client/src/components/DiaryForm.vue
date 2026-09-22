@@ -190,6 +190,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { getAuthHeaders } from '../services/auth'
 
 const props = defineProps<{
   initial?: any
@@ -365,6 +366,9 @@ async function onSubmit() {
       const id = Number(props.initial.Id ?? props.initial.id)
       const res = await fetch(`${apiBase}/api/DiaryMoments/${id}`, {
         method: 'PUT',
+        headers: {
+          ...getAuthHeaders(),
+        },
         body: formData,
       })
       if (!res.ok) {
@@ -380,6 +384,9 @@ async function onSubmit() {
 
     const res = await fetch(`${apiBase}/api/DiaryMoments`, {
       method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+      },
       body: formData,
     })
     if (!res.ok) {

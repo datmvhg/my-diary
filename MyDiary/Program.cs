@@ -1,15 +1,19 @@
+using System;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using DBConnect;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
 
-// Get connection string from DATABASE_URL environment variable or appsettings.json
+// Database Connection
 var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -19,6 +23,45 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString)
 );
 
+// ASP.NET Core Identity Configuration
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+{
+    options.Password.RequiredLength = 6;
+    options.Password.RequireDigit = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireLowercase = false;
+    options.User.RequireUniqueEmail = false;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
+
+// JWT Authentication Configuration
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "MyDiarySuperSecretSecureKeyWithAtLeast32CharactersLong2026!";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "MyDiaryApi";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "MyDiaryClient";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("VueClient", policy =>
@@ -44,7 +87,7 @@ catch (Exception ex)
     Console.WriteLine($"Database migration notice: {ex.Message}");
 }
 
-// Swagger API documentation
+// Swagger UI
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -59,6 +102,8 @@ app.UseCors("VueClient");
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+// Authentication & Authorization pipeline
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

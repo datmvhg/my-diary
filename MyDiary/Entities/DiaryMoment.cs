@@ -21,6 +21,9 @@ namespace Entities
     {
         public int Id { get; set; }
 
+        // Owner user identifier
+        public string? UserId { get; set; }
+
         // Optional title for the moment
         public string? Title { get; set; }
 

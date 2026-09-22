@@ -80,6 +80,21 @@
             </svg>
             <span>Viết nhật ký</span>
           </button>
+
+          <!-- User Info & Logout Button -->
+          <div class="user-badge" v-if="authState.user" :title="'Tài khoản: ' + authState.user.username">
+            <span class="avatar-circle">{{ (authState.user.username || 'U').charAt(0).toUpperCase() }}</span>
+            <span class="user-display-name">{{ authState.user.username }}</span>
+          </div>
+
+          <button class="btn-logout" @click="handleLogout" title="Đăng xuất khỏi tài khoản">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span class="action-text">Đăng xuất</span>
+          </button>
         </div>
       </div>
 
@@ -412,7 +427,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, reactive } 
 import DiaryForm from './DiaryForm.vue'
 import DiaryDetailModal from './DiaryDetailModal.vue'
 import ImageLightbox from './ImageLightbox.vue'
-import { getApiDiaryMoments, deleteApiDiaryMomentsById } from '../api/generated'
+import { authState, logout, getAuthHeaders, getApiBase } from '../services/auth'
 
 const isDark = ref(false)
 const entries = ref<Array<any>>([])
@@ -602,8 +617,23 @@ async function load() {
   error.value = ''
 
   try {
-    const res: any = await getApiDiaryMoments()
-    const data = res && 'data' in res ? res.data : res
+    const apiBase = getApiBase()
+    const res = await fetch(`${apiBase}/api/DiaryMoments`, {
+      headers: {
+        ...getAuthHeaders()
+      }
+    })
+
+    if (res.status === 401) {
+      logout()
+      return
+    }
+
+    if (!res.ok) {
+      throw new Error(`Tải dữ liệu thất bại (${res.status})`)
+    }
+
+    const data = await res.json()
     let list = Array.isArray(data) ? data : (Array.isArray(Object.values(data ?? {})) ? Object.values(data ?? {}) : [])
     if (!Array.isArray(list)) list = [data]
 
@@ -751,13 +781,35 @@ async function executeDelete() {
   deleting.value = true
   try {
     const id = Number(entryToDelete.value.Id ?? entryToDelete.value.id)
-    await deleteApiDiaryMomentsById({ path: { id }, throwOnError: true })
+    const apiBase = getApiBase()
+    const res = await fetch(`${apiBase}/api/DiaryMoments/${id}`, {
+      method: 'DELETE',
+      headers: {
+        ...getAuthHeaders()
+      }
+    })
+
+    if (res.status === 401) {
+      logout()
+      return
+    }
+
+    if (!res.ok) {
+      throw new Error(`Xóa thất bại (${res.status})`)
+    }
+
     entryToDelete.value = null
     await load()
   } catch (err: any) {
     alert('Không thể xóa nhật ký: ' + (err?.message ?? String(err)))
   } finally {
     deleting.value = false
+  }
+}
+
+function handleLogout() {
+  if (confirm('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?')) {
+    logout()
   }
 }
 
@@ -1016,6 +1068,71 @@ onBeforeUnmount(() => {
   background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
+}
+
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.avatar-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), #8b5cf6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.user-display-name {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--bg-card);
+  color: var(--danger-hover);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-size: 0.845rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.btn-logout:hover {
+  background: var(--danger-light);
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+html.dark .btn-logout {
+  color: #fca5a5;
+}
+
+html.dark .btn-logout:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 /* Filter Strip */
