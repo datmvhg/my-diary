@@ -30,8 +30,24 @@
       <!-- Modal Body -->
       <div class="modal-body">
         <!-- Hero Image if present -->
-        <div v-if="imageUrl" class="detail-media">
+        <div
+          v-if="imageUrl"
+          class="detail-media"
+          @click="showLightbox = true"
+          title="Nhấn để xem ảnh phóng to"
+        >
           <img :src="imageUrl" alt="Hình ảnh khoảnh khắc" class="detail-img" />
+          <div class="media-hover-overlay">
+            <span class="zoom-pill">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <line x1="11" y1="8" x2="11" y2="14"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+              </svg>
+              Phóng to ảnh
+            </span>
+          </div>
         </div>
 
         <!-- Detail Content -->
@@ -67,11 +83,24 @@
         </button>
       </div>
     </div>
+
+    <!-- Fullscreen Image Lightbox Modal -->
+    <Teleport to="body">
+      <ImageLightbox
+        v-if="showLightbox && imageUrl"
+        :image-url="imageUrl"
+        :title="entry.Title ?? entry.title ?? 'Hình ảnh nhật ký'"
+        @close="showLightbox = false"
+      />
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import ImageLightbox from './ImageLightbox.vue'
+
+const showLightbox = ref(false)
 
 const props = defineProps<{
   entry: any
@@ -235,20 +264,62 @@ function onDelete() {
 }
 
 .detail-media {
+  position: relative;
   width: 100%;
+  aspect-ratio: 16 / 9;
+  flex-shrink: 0; /* CRITICAL: Never shrink regardless of description length */
+  min-height: 220px;
+  max-height: 420px;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  max-height: 380px;
   background: var(--bg-subtle);
   box-shadow: var(--shadow-sm);
+  cursor: zoom-in;
+  border: 1px solid var(--border-light);
 }
 
 .detail-img {
   width: 100%;
-  height: auto;
-  max-height: 380px;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;
   display: block;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.detail-media:hover .detail-img {
+  transform: scale(1.025);
+}
+
+.media-hover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.25);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity var(--transition-fast);
+  pointer-events: none;
+}
+
+.detail-media:hover .media-hover-overlay {
+  opacity: 1;
+}
+
+.zoom-pill {
+  background: rgba(15, 23, 42, 0.78);
+  color: white;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .detail-content {
@@ -338,5 +409,35 @@ function onDelete() {
 
 .btn-close-main:hover {
   background: var(--primary-hover);
+}
+
+@media (max-width: 640px) {
+  .modal-card {
+    max-height: 95vh;
+  }
+  .modal-body {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .detail-media {
+    aspect-ratio: 16 / 9;
+    min-height: 180px;
+    border-radius: var(--radius-md);
+  }
+  .media-hover-overlay {
+    opacity: 1;
+    background: transparent;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 0.65rem;
+  }
+  .zoom-pill {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+    background: rgba(15, 23, 42, 0.85);
+  }
+  .detail-title {
+    font-size: 1.25rem;
+  }
 }
 </style>

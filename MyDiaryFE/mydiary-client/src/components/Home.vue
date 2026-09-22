@@ -235,6 +235,19 @@
               <!-- Quick Action Hover Controls -->
               <div class="card-quick-actions" @click.stop>
                 <button
+                  v-if="getImageUrl(entry, startIndex + i)"
+                  class="quick-action-btn zoom"
+                  title="Xem ảnh phóng to"
+                  @click.stop="openLightbox(getImageUrl(entry, startIndex + i)!, entry.Title ?? entry.title)"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                  </svg>
+                </button>
+                <button
                   class="quick-action-btn edit"
                   title="Chỉnh sửa bài viết"
                   @click.stop="openEdit(entry)"
@@ -357,6 +370,16 @@
       @delete="onDetailDelete"
     />
 
+    <!-- Fullscreen Image Lightbox Modal -->
+    <Teleport to="body">
+      <ImageLightbox
+        v-if="lightboxImageUrl"
+        :image-url="lightboxImageUrl"
+        :title="lightboxTitle"
+        @close="lightboxImageUrl = null"
+      />
+    </Teleport>
+
     <!-- Custom In-App Delete Confirmation Modal -->
     <div v-if="entryToDelete" class="confirm-overlay">
       <div class="confirm-card" role="alertdialog">
@@ -388,6 +411,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, reactive } from 'vue'
 import DiaryForm from './DiaryForm.vue'
 import DiaryDetailModal from './DiaryDetailModal.vue'
+import ImageLightbox from './ImageLightbox.vue'
 import { getApiDiaryMoments, deleteApiDiaryMomentsById } from '../api/generated'
 
 const isDark = ref(false)
@@ -406,8 +430,15 @@ const showEdit = ref(false)
 const editingEntry = ref<any>(null)
 const selectedDetailEntry = ref<any>(null)
 const selectedDetailImageUrl = ref<string | null>(null)
+const lightboxImageUrl = ref<string | null>(null)
+const lightboxTitle = ref('')
 const entryToDelete = ref<any>(null)
 const deleting = ref(false)
+
+function openLightbox(url: string, title?: string) {
+  lightboxImageUrl.value = url
+  lightboxTitle.value = title || 'Hình ảnh khoảnh khắc'
+}
 
 const perPage = 8
 const currentPage = ref(1)
@@ -1169,7 +1200,8 @@ onBeforeUnmount(() => {
 .card-media {
   position: relative;
   width: 100%;
-  padding-top: 60%;
+  aspect-ratio: 16 / 10;
+  flex-shrink: 0;
   overflow: hidden;
   background-color: var(--bg-subtle);
 }
@@ -1306,6 +1338,12 @@ onBeforeUnmount(() => {
 
 .quick-action-btn:hover {
   transform: scale(1.08);
+}
+
+.quick-action-btn.zoom:hover {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+  border-color: #2563eb;
 }
 
 .quick-action-btn.edit:hover {
