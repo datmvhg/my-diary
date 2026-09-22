@@ -383,6 +383,54 @@ namespace Controllers
             };
         }
 
+        // GET / POST / DELETE: api/auth/clear-test-data
+        // Easily clears users and verification codes so developers can re-register from scratch
+        [HttpGet("clear-test-data")]
+        [HttpPost("clear-test-data")]
+        [HttpDelete("clear-test-data")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ClearTestData([FromQuery] bool clearMoments = false)
+        {
+            // 1. Remove all verification codes
+            _db.EmailVerificationCodes.RemoveRange(_db.EmailVerificationCodes);
+
+            // 2. Clear identity helper tables
+            _db.UserRoles.RemoveRange(_db.UserRoles);
+            _db.UserClaims.RemoveRange(_db.UserClaims);
+            _db.UserLogins.RemoveRange(_db.UserLogins);
+            _db.UserTokens.RemoveRange(_db.UserTokens);
+
+            // 3. Clear all users
+            var users = await _userManager.Users.ToListAsync();
+            foreach (var user in users)
+            {
+                await _userManager.DeleteAsync(user);
+            }
+
+            // 4. Optionally clear or unassign moments
+            if (clearMoments)
+            {
+                _db.DiaryMoments.RemoveRange(_db.DiaryMoments);
+            }
+            else
+            {
+                var moments = await _db.DiaryMoments.ToListAsync();
+                foreach (var m in moments)
+                {
+                    m.UserId = null;
+                }
+            }
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Đã xóa toàn bộ dữ liệu tài khoản và mã xác thực thành công. Bạn có thể đăng ký tài khoản mới ngay bây giờ!",
+                deletedUsersCount = users.Count
+            });
+        }
+
         private static string GenerateRandom6DigitCode()
         {
             var random = new Random();
