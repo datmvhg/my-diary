@@ -30,5 +30,6 @@ namespace DTOs
         public Emotion? Emotion { get; set; }
         public DateTime? MomentAt { get; set; }
         public Microsoft.AspNetCore.Http.IFormFile? Image { get; set; }
+        public bool? RemoveImage { get; set; }
     }
 }

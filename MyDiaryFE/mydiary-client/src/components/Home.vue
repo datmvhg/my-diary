@@ -250,7 +250,7 @@
                 <button
                   class="quick-action-btn edit"
                   title="Chỉnh sửa bài viết"
-                  @click.stop="openEdit(entry)"
+                  @click.stop="openEdit(entry, startIndex + i)"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -715,8 +715,25 @@ function openAdd() {
   showAdd.value = true
 }
 
-function openEdit(e: any) {
-  editingEntry.value = e
+function openEdit(e: any, index?: number) {
+  const id = e?.Id ?? e?.id
+  const hasImg = e?.HasImage ?? e?.hasImage ?? false
+  let imgUrl = e?.ImageUrl ?? e?.imageUrl ?? null
+  if (!imgUrl && hasImg && id != null) {
+    const key = index !== undefined ? getEntryKey(e, index) : String(id)
+    imgUrl = imageMap[key] || imageMap[String(id)] || null
+    if (!imgUrl) {
+      const apiBase = (import.meta.env.VITE_API_BASE_URL as string)?.replace(/\/+$/, '') 
+        ?? (import.meta.env.DEV ? 'http://localhost:5224' : '')
+      imgUrl = `${apiBase}/api/DiaryMoments/${id}/image`
+    }
+  }
+
+  editingEntry.value = {
+    ...e,
+    imageUrl: imgUrl,
+    hasImage: hasImg,
+  }
   showEdit.value = true
 }
 
@@ -758,7 +775,7 @@ function nextPage() {
   }
 }
 
-async function onSaved(info?: { id?: number, imageChanged?: boolean, isNew?: boolean }) {
+async function onSaved(info?: { id?: number, imageChanged?: boolean, imageRemoved?: boolean, isNew?: boolean }) {
   if (info?.isNew) {
     currentPage.value = 1
     await load()
@@ -766,14 +783,16 @@ async function onSaved(info?: { id?: number, imageChanged?: boolean, isNew?: boo
     await load()
   }
 
-  if (info?.imageChanged && info.id != null) {
+  if (info?.id != null && (info?.imageChanged || info?.imageRemoved)) {
     const key = String(info.id)
     if (objectUrls[key]) {
       try { URL.revokeObjectURL(objectUrls[key]) } catch {}
       delete objectUrls[key]
     }
     delete imageMap[key]
-    await fetchImageById(Number(info.id), key)
+    if (info.imageChanged && !info.imageRemoved) {
+      await fetchImageById(Number(info.id), key).catch(() => {})
+    }
   }
 }
 
@@ -803,8 +822,13 @@ function closeDetail() {
 }
 
 function onDetailEdit(entry: any) {
+  const imgUrl = selectedDetailImageUrl.value
   closeDetail()
-  openEdit(entry)
+  openEdit({
+    ...entry,
+    imageUrl: imgUrl,
+    hasImage: entry.hasImage ?? entry.HasImage ?? !!imgUrl,
+  })
 }
 
 function onDetailDelete(entry: any) {

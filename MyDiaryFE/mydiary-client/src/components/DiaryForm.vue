@@ -76,7 +76,7 @@
           ></textarea>
         </div>
 
-        <!-- Image Upload Section -->
+        <!-- Image Upload & Management Section -->
         <div class="form-group">
           <label class="form-label">Hình ảnh kỷ niệm</label>
           <input
@@ -87,39 +87,77 @@
             @change="onFileChange"
           />
 
-          <!-- Image Preview if available -->
-          <div v-if="previewUrl" class="image-preview-card">
-            <img :src="previewUrl" alt="Preview ảnh nhật ký" class="preview-img" />
-            <div class="preview-overlay">
-              <button type="button" class="preview-action-btn" @click="triggerFileInput">
+          <!-- Image Preview & Controls if image exists or selected -->
+          <div v-if="currentPreviewUrl" class="image-preview-wrapper">
+            <div class="image-preview-card">
+              <img :src="currentPreviewUrl" alt="Hình ảnh nhật ký" class="preview-img" />
+              <!-- Status Badge -->
+              <div class="preview-status-badge" :class="{ 'is-new': isNewFileSelected }">
+                <span class="status-dot"></span>
+                <span>{{ isNewFileSelected ? 'Ảnh mới đã chọn' : 'Ảnh hiện tại của nhật ký' }}</span>
+              </div>
+            </div>
+
+            <!-- Action Buttons for Existing/Selected Image -->
+            <div class="image-action-bar">
+              <button
+                type="button"
+                class="img-btn-change"
+                @click="triggerFileInput"
+                title="Chọn ảnh khác từ máy"
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                  <path d="M15 5l4 4"/>
                 </svg>
-                Thay ảnh
+                <span>{{ isNewFileSelected ? 'Chọn ảnh khác' : 'Thay đổi hình ảnh' }}</span>
               </button>
-              <button type="button" class="preview-action-btn remove" @click="removeImage">
+              <button
+                type="button"
+                class="img-btn-remove"
+                @click="removeImage"
+                title="Xóa hình ảnh này khỏi bài viết"
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
                 </svg>
-                Xóa
+                <span>Xóa hình ảnh</span>
               </button>
             </div>
           </div>
 
           <!-- Dropzone if no image -->
-          <div v-else class="upload-dropzone" @click="triggerFileInput">
-            <div class="dropzone-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
+          <div v-else class="upload-dropzone-container">
+            <div class="upload-dropzone" @click="triggerFileInput">
+              <div class="dropzone-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <div class="dropzone-text">
+                <span class="highlight">Thêm hình ảnh</span> hoặc kéo thả vào đây
+              </div>
+              <span class="dropzone-hint">Hỗ trợ JPG, PNG, WEBP (Tối đa 10MB)</span>
+            </div>
+
+            <!-- Restore Button if user removed an existing image in this edit session -->
+            <button
+              v-if="isEdit && initialImageUrl && isImageRemoved"
+              type="button"
+              class="restore-image-btn"
+              @click="restoreOriginalImage"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
               </svg>
-            </div>
-            <div class="dropzone-text">
-              <span class="highlight">Nhấn để chọn ảnh</span> hoặc kéo thả vào đây
-            </div>
-            <span class="dropzone-hint">Hỗ trợ JPG, PNG, WEBP (Tối đa 10MB)</span>
+              Khôi phục ảnh ban đầu
+            </button>
           </div>
         </div>
 
@@ -151,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps<{
   initial?: any
@@ -174,7 +212,6 @@ const emotionOptions = [
 
 function toLocalDatetimeInput(val: any) {
   if (!val) {
-    // default to now if creating
     const now = new Date()
     const pad = (n: number) => String(n).padStart(2, '0')
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
@@ -196,18 +233,31 @@ const form = reactive<any>({
 const loading = ref(false)
 const error = ref('')
 const fileInputRef = ref<HTMLInputElement | null>(null)
-const previewUrl = ref<string | null>(props.initial?.ImageUrl ?? props.initial?.imageUrl ?? null)
-let objectUrl: string | null = null
 
-watch(() => form.Image, (newImg) => {
-  if (objectUrl) {
-    URL.revokeObjectURL(objectUrl)
-    objectUrl = null
+// Resolve initial existing image URL
+const initialImageUrl = computed(() => {
+  if (props.initial?.imageUrl || props.initial?.ImageUrl) {
+    return props.initial.imageUrl || props.initial.ImageUrl
   }
-  if (newImg instanceof File) {
-    objectUrl = URL.createObjectURL(newImg)
-    previewUrl.value = objectUrl
+  const id = props.initial?.Id ?? props.initial?.id
+  const hasImg = props.initial?.HasImage ?? props.initial?.hasImage
+  if (isEdit && hasImg && id != null) {
+    const apiBase = (import.meta.env.VITE_API_BASE_URL as string)?.replace(/\/+$/, '') 
+      ?? (import.meta.env.DEV ? 'http://localhost:5224' : '')
+    return `${apiBase}/api/DiaryMoments/${id}/image`
   }
+  return null
+})
+
+const isImageRemoved = ref(false)
+const filePreviewUrl = ref<string | null>(null)
+
+const isNewFileSelected = computed(() => !!filePreviewUrl.value)
+
+const currentPreviewUrl = computed(() => {
+  if (filePreviewUrl.value) return filePreviewUrl.value
+  if (!isImageRemoved.value && initialImageUrl.value) return initialImageUrl.value
+  return null
 })
 
 function selectEmotion(val: number) {
@@ -222,17 +272,35 @@ function onFileChange(e: Event) {
   const el = e.target as HTMLInputElement
   const file = el.files && el.files[0]
   if (file) {
+    if (filePreviewUrl.value) {
+      URL.revokeObjectURL(filePreviewUrl.value)
+      filePreviewUrl.value = null
+    }
     form.Image = file
+    filePreviewUrl.value = URL.createObjectURL(file)
+    isImageRemoved.value = false
   }
 }
 
 function removeImage() {
-  if (objectUrl) {
-    URL.revokeObjectURL(objectUrl)
-    objectUrl = null
+  if (filePreviewUrl.value) {
+    URL.revokeObjectURL(filePreviewUrl.value)
+    filePreviewUrl.value = null
   }
-  previewUrl.value = null
   form.Image = undefined
+  isImageRemoved.value = true
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
+
+function restoreOriginalImage() {
+  if (filePreviewUrl.value) {
+    URL.revokeObjectURL(filePreviewUrl.value)
+    filePreviewUrl.value = null
+  }
+  form.Image = undefined
+  isImageRemoved.value = false
   if (fileInputRef.value) {
     fileInputRef.value.value = ''
   }
@@ -255,7 +323,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
-  if (objectUrl) URL.revokeObjectURL(objectUrl)
+  if (filePreviewUrl.value) {
+    URL.revokeObjectURL(filePreviewUrl.value)
+    filePreviewUrl.value = null
+  }
 })
 
 async function onSubmit() {
@@ -283,6 +354,8 @@ async function onSubmit() {
 
     if (form.Image instanceof File) {
       formData.append('Image', form.Image)
+    } else if (isEdit && isImageRemoved.value) {
+      formData.append('RemoveImage', 'true')
     }
 
     const apiBase = (import.meta.env.VITE_API_BASE_URL as string)?.replace(/\/+$/, '') 
@@ -298,7 +371,9 @@ async function onSubmit() {
         const text = await res.text().catch(() => '')
         throw new Error(`Cập nhật thất bại (${res.status}): ${text}`)
       }
-      emit('saved', { id, imageChanged: !!form.Image, isNew: false })
+      const imageChanged = !!form.Image || isImageRemoved.value
+      const imageRemoved = isImageRemoved.value && !form.Image
+      emit('saved', { id, imageChanged, imageRemoved, isNew: false })
       emit('close')
       return
     }
@@ -565,58 +640,140 @@ async function onSubmit() {
   margin-top: 0.25rem;
 }
 
+.image-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
 .image-preview-card {
   position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  max-height: 220px;
-  background: #000;
+  aspect-ratio: 16 / 9;
+  max-height: 240px;
+  background: var(--bg-subtle);
   border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .preview-img {
   width: 100%;
-  height: 220px;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.preview-overlay {
+.preview-status-badge {
   position: absolute;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(2px);
+  top: 0.75rem;
+  left: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.82);
+  color: white;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.preview-status-badge .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #38bdf8;
+}
+
+.preview-status-badge.is-new .status-dot {
+  background: #4ade80;
+}
+
+.image-action-bar {
   display: flex;
+  gap: 0.5rem;
+}
+
+.img-btn-change, .img-btn-remove {
+  flex: 1;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.image-preview-card:hover .preview-overlay {
-  opacity: 1;
-}
-
-.preview-action-btn {
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--text-primary);
-  padding: 0.5rem 0.875rem;
+  gap: 0.45rem;
+  padding: 0.55rem 0.875rem;
   border-radius: var(--radius-md);
   font-size: 0.8125rem;
   font-weight: 600;
-  box-shadow: var(--shadow-sm);
-  border: none;
   cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.preview-action-btn.remove {
-  background: rgba(239, 68, 68, 0.9);
-  color: white;
+.img-btn-change {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
 }
 
-.preview-action-btn:hover {
-  transform: scale(1.04);
+.img-btn-change:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.img-btn-remove {
+  background: var(--danger-light);
+  color: var(--danger-hover);
+  border: 1px solid #fecaca;
+}
+
+.img-btn-remove:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #f87171;
+}
+
+html.dark .img-btn-remove {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+html.dark .img-btn-remove:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.upload-dropzone-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.restore-image-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.restore-image-btn:hover {
+  background: var(--primary-light);
+  text-decoration: underline;
 }
 
 /* Error Banner */

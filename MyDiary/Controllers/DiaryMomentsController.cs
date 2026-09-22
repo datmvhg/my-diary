@@ -133,6 +133,11 @@ namespace Controllers
             {
                 await moment.SetImageAsync(dto.Image);
             }
+            else if (dto.RemoveImage == true)
+            {
+                moment.ImageData = null;
+                moment.ImageMimeType = null;
+            }
 
             _db.DiaryMoments.Update(moment);
             await _db.SaveChangesAsync();
