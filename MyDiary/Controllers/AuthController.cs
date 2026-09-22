@@ -383,14 +383,23 @@ namespace Controllers
             };
         }
 
-        // GET / POST / DELETE: api/auth/clear-test-data
-        // Easily clears users and verification codes so developers can re-register from scratch
+        // GET / POST / DELETE: api/auth/clear-test-data?key=<admin-secret>
+        // Protected by secret key to prevent unauthorized deletion
         [HttpGet("clear-test-data")]
         [HttpPost("clear-test-data")]
         [HttpDelete("clear-test-data")]
         [AllowAnonymous]
-        public async Task<IActionResult> ClearTestData([FromQuery] bool clearMoments = false)
+        public async Task<IActionResult> ClearTestData([FromQuery] string? key, [FromQuery] bool clearMoments = false)
         {
+            var expectedKey = _configuration["Admin:ResetKey"] 
+                ?? Environment.GetEnvironmentVariable("ADMIN_RESET_KEY") 
+                ?? "mydiary-secret-reset-2026";
+
+            if (string.IsNullOrWhiteSpace(key) || key != expectedKey)
+            {
+                return NotFound(new { message = "Endpoint không tồn tại hoặc bạn không có quyền truy cập." });
+            }
+
             // 1. Remove all verification codes
             _db.EmailVerificationCodes.RemoveRange(_db.EmailVerificationCodes);
 
