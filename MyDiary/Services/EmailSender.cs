@@ -37,8 +37,8 @@ namespace Services
             var fromEmail = _configuration["Smtp:FromEmail"] ?? "noreply@mydiary.local";
             var fromName = _configuration["Smtp:FromName"] ?? "My Diary";
 
-            // If SMTP is not configured (empty host or username), we rely on console logging in dev
-            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(username))
+            // If SMTP is not configured (empty host, username, or password), we rely on console logging in dev
+            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
                 _logger.LogWarning("SMTP is not configured in appsettings.json. Verification code was logged to console.");
                 return;
