@@ -10,6 +10,10 @@ namespace DTOs
         [MaxLength(50, ErrorMessage = "Tên tài khoản không được vượt quá 50 ký tự")]
         public string Username { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Vui lòng nhập địa chỉ email")]
+        [EmailAddress(ErrorMessage = "Địa chỉ email không hợp lệ")]
+        public string Email { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "Vui lòng nhập mật khẩu")]
         [MinLength(6, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự")]
         public string Password { get; set; } = string.Empty;
@@ -21,11 +25,27 @@ namespace DTOs
 
     public class LoginDto
     {
-        [Required(ErrorMessage = "Vui lòng nhập tên tài khoản")]
+        [Required(ErrorMessage = "Vui lòng nhập tên tài khoản hoặc email")]
         public string Username { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Vui lòng nhập mật khẩu")]
         public string Password { get; set; } = string.Empty;
+    }
+
+    public class VerifyEmailDto
+    {
+        [Required(ErrorMessage = "Vui lòng cung cấp tài khoản hoặc email")]
+        public string UsernameOrEmail { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập mã xác thực OTP 6 số")]
+        [StringLength(6, MinimumLength = 6, ErrorMessage = "Mã xác thực phải gồm đúng 6 chữ số")]
+        public string Code { get; set; } = string.Empty;
+    }
+
+    public class SendVerificationCodeDto
+    {
+        [Required(ErrorMessage = "Vui lòng cung cấp tài khoản hoặc email")]
+        public string UsernameOrEmail { get; set; } = string.Empty;
     }
 
     public class AuthResponseDto
@@ -33,6 +53,7 @@ namespace DTOs
         public string Token { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
+        public string? Email { get; set; }
         public DateTime ExpiresAt { get; set; }
     }
 
@@ -41,6 +62,6 @@ namespace DTOs
         public string UserId { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string? Email { get; set; }
+        public bool EmailConfirmed { get; set; }
     }
 }
-

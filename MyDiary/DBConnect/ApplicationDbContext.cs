@@ -14,6 +14,7 @@ namespace DBConnect
 
         public DbSet<Note> Notes { get; set; } = null!;
         public DbSet<DiaryMoment> DiaryMoments { get; set; } = null!;
+        public DbSet<EmailVerificationCode> EmailVerificationCodes { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
