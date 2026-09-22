@@ -59,7 +59,47 @@ namespace Services
                 </div>
             </div>";
 
-            // 1. Try Resend HTTP API first (Works over port 443 HTTPS - Never blocked on Render Free)
+            // 1. Try Google Apps Script Gmail Gateway (Free 100 emails/day, sends to ANY recipient, no domain required, HTTPS port 443)
+            var googleScriptUrl = (_configuration["GoogleScript:Url"]
+                ?? Environment.GetEnvironmentVariable("GOOGLE_SCRIPT_URL")
+                ?? Environment.GetEnvironmentVariable("GoogleScript__Url"))?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(googleScriptUrl))
+            {
+                try
+                {
+                    using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                    var payload = new
+                    {
+                        to = toEmail,
+                        subject = $"[My Diary] Mã xác thực đăng ký tài khoản: {code}",
+                        html = htmlBody
+                    };
+
+                    var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                    var response = await httpClient.PostAsync(googleScriptUrl, content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _logger.LogInformation("Verification email sent successfully via Google Apps Script to {Email}", toEmail);
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine($"[GOOGLE APPS SCRIPT SUCCESS] Verification email sent to {toEmail}");
+                        Console.ResetColor();
+                        return;
+                    }
+                    else
+                    {
+                        var err = await response.Content.ReadAsStringAsync();
+                        _logger.LogWarning("Google Apps Script returned {StatusCode}: {Error}", response.StatusCode, err);
+                    }
+                }
+                catch (Exception gEx)
+                {
+                    _logger.LogWarning(gEx, "Google Apps Script call failed: {Message}", gEx.Message);
+                }
+            }
+
+            // 2. Try Resend HTTP API (Works over port 443 HTTPS)
             var resendApiKey = (_configuration["Resend:ApiKey"]
                 ?? Environment.GetEnvironmentVariable("RESEND_API_KEY")
                 ?? Environment.GetEnvironmentVariable("Resend__ApiKey"))?.Trim();
