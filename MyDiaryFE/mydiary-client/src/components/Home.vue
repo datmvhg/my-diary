@@ -73,12 +73,12 @@
             <span class="action-text">Làm mới</span>
           </button>
 
-          <button class="btn-add-moment" @click="openAdd">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="btn-add-moment" @click="openAdd" title="Viết nhật ký mới">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span>Viết nhật ký</span>
+            <span class="btn-add-text">Thêm mới</span>
           </button>
 
           <!-- User Info & Logout Button -->
@@ -1059,9 +1059,19 @@ onBeforeUnmount(() => {
 .btn-add-moment {
   background: var(--primary);
   color: #ffffff;
-  padding: 0.6rem 1.15rem;
+  padding: 0.55rem 1rem;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast);
 }
 
 .btn-add-moment:hover {
@@ -1767,19 +1777,49 @@ html.dark .btn-logout:hover {
 
 @media (max-width: 640px) {
   .header-container {
-    padding: 0.875rem 1rem;
+    padding: 0.75rem 1rem;
+  }
+  .header-actions {
+    gap: 0.35rem;
   }
   .action-text {
     display: none;
   }
-  .btn-refresh {
-    padding: 0.55rem;
+  .user-display-name {
+    display: none;
+  }
+  .user-badge {
+    padding: 0.2rem;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+  .btn-add-moment {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    gap: 0.35rem;
+  }
+  .btn-refresh, .btn-logout {
+    padding: 0.5rem;
   }
   .main-content {
     padding: 1.25rem 1rem 3rem;
   }
   .diary-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-title {
+    font-size: 1.1rem;
+  }
+  .header-container {
+    padding: 0.65rem 0.75rem;
+  }
+  .btn-add-moment {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.775rem;
   }
 }
 </style>
