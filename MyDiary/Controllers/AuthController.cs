@@ -107,8 +107,18 @@ namespace Controllers
             _db.EmailVerificationCodes.Add(verificationRecord);
             await _db.SaveChangesAsync();
 
-            // Send email using MailKit
-            await _emailSender.SendVerificationCodeAsync(user.Email, code);
+            // Send email using MailKit asynchronously in background so the HTTP request never hangs
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailSender.SendVerificationCodeAsync(user.Email ?? "", code);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[EMAIL SEND ERROR] {ex.Message}");
+                }
+            });
 
             return Ok(new
             {
@@ -175,8 +185,18 @@ namespace Controllers
             _db.EmailVerificationCodes.Add(newRecord);
             await _db.SaveChangesAsync();
 
-            // Send via MailKit
-            await _emailSender.SendVerificationCodeAsync(user.Email, code);
+            // Send via MailKit asynchronously in background so the HTTP request never hangs
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailSender.SendVerificationCodeAsync(user.Email ?? "", code);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[EMAIL RESEND ERROR] {ex.Message}");
+                }
+            });
 
             return Ok(new
             {

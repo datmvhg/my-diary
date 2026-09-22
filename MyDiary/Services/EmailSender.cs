@@ -87,11 +87,14 @@ namespace Services
                 message.Body = bodyBuilder.ToMessageBody();
 
                 using var client = new SmtpClient();
+                client.Timeout = 5000; // 5 seconds max timeout
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
                 var socketOption = (port == 465) ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
-                await client.ConnectAsync(host, port, socketOption);
-                await client.AuthenticateAsync(username.Trim(), password.Trim());
-                await client.SendAsync(message);
-                await client.DisconnectAsync(true);
+                await client.ConnectAsync(host, port, socketOption, cts.Token);
+                await client.AuthenticateAsync(username.Trim(), password.Trim(), cts.Token);
+                await client.SendAsync(message, cts.Token);
+                await client.DisconnectAsync(true, cts.Token);
 
                 _logger.LogInformation("Verification email sent successfully via MailKit to {Email}", toEmail);
             }
